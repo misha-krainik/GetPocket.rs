@@ -16,7 +16,7 @@ impl TokenError {
     }
 
     fn is_error(&self, code: u32) -> Option<Self> {
-       None
+        None
     }
 }
 
@@ -30,14 +30,22 @@ const GET_TOKEN_ERROR: [TokenError; 7] = [
     TokenError::new(503, 199, "Pocket server issue"),
 ];
 
-struct GetPocket {
+pub struct GetPocket {
     consumer_key: String,
     redirect_uri: String,
 }
 
 impl GetPocket {
-    pub async fn get_token(&self) -> Result<String>{
+    pub fn new(consumer_key: String, redirect_uri: String) -> Self {
+        Self {
+            consumer_key,
+            redirect_uri,
+        }
+    }
+
+    pub async fn get_token(&self) -> Result<String> {
         use std::collections::HashMap;
+        use reqwest::header;
 
         let mut map = HashMap::new();
         map.insert("consumer_key", &self.consumer_key);
@@ -45,10 +53,16 @@ impl GetPocket {
 
         let url = "https://getpocket.com/v3/oauth/request";
 
-        let client = reqwest::Client::new();
+        let mut headers = header::HeaderMap::new();
+        headers.insert("Content-Type", header::HeaderValue::from_static("application/json; charset=UTF-8"));
+
+        let client = reqwest::Client::builder()
+            .default_headers(headers)
+            .build()?;
+
         let res = client.post(url).json(&map).send().await?;
 
-        // GET_TOKEN_ERROR
+        dbg!(&res.text().await?);
 
         Ok(String::from(""))
     }
