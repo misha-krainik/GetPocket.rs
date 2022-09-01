@@ -32,8 +32,16 @@ mod tests {
         let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
         let redirect_url = std::env::var("GET_POCKET_REDIRECT_URL").expect("ENV must be set");
 
-        let mut get_pocket = GetPocket::new(consumer_key, redirect_url);
-        let r = get_pocket.get_token().await;
+        let mut get_pocket = GetPocket::new(consumer_key, redirect_url).expect("Cannot init GetPocket instance");
+        let r = get_pocket
+            .get_request_token()
+            .await
+            .unwrap()
+            .get_access_token()
+            .await
+            .unwrap();
+
+        dbg!(&r);
 
         assert!(false);
 

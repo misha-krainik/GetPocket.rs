@@ -1,5 +1,7 @@
 use anyhow::Result;
+use reqwest::header;
 use serde::{Deserialize, Serialize};
+//        use std::collections::HashMap;
 
 struct TokenError {
     http_status: u32,
@@ -16,7 +18,7 @@ impl TokenError {
         }
     }
 
-    fn is_error(&self, code: u32) -> Option<Self> {
+    fn is_error(&self, _code: u32) -> Option<Self> {
         None
     }
 }
@@ -31,64 +33,47 @@ const GET_TOKEN_ERROR: [TokenError; 7] = [
     TokenError::new(503, 199, "Pocket server issue"),
 ];
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Clone, Debug)]
 struct Token {
-    code: String,
+    request_token: Option<String>,
+    access_token: Option<String>,
 }
 
-#[derive(Serialize)]
-struct GetTokenRequest<'a> {
-    consumer_key: &'a str,
-    redirect_uri: &'a str,
+impl<'a> Token {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn set_request_token(&mut self, request_token: &str) {
+        let request_token = request_token.to_string();
+        self.request_token = Some(request_token);
+    }
+
+    fn set_access_token(&mut self, access_token: &str) {
+        let access_token = access_token.to_string();
+        self.access_token = Some(access_token);
+    }
+
+    fn finish(&self) -> Self {
+        self.clone()
+    }
 }
 
-// #[derive(Serialize)]
-// struct GetPocketRequstHeaders {
-//     #[serde(rename(serialize = "Content-Type"))]
-//     content_type: String,
-//     #[serde(rename(serialize = "X-Accept"))]
-//     x_accept: String,
-// }
-
-// impl Default for GetPocketRequstHeaders {
-//     fn default() -> Self {
-//         let content_type = "";
-//         let x_accept = "";
-
-//         GetPocketRequstHeaders {
-//             content_type,
-//             x_accept,
-//         }
-//     }
-// }
+#[derive(Debug)]
+struct Reqwester {
+    client: reqwest::Client,
+}
 
 #[derive(Debug)]
 pub struct GetPocket {
     consumer_key: String,
     redirect_uri: String,
-    token: Option<Token>,
+    token: Token,
+    reqwester: Reqwester,
 }
 
 impl GetPocket {
-    pub fn new(consumer_key: String, redirect_uri: String) -> Self {
-        Self {
-            consumer_key,
-            redirect_uri,
-            token: None,
-        }
-    }
-
-    pub async fn get_token(&mut self) -> Result<String> {
-        use reqwest::header;
-        use std::collections::HashMap;
-
-        let mut map = GetTokenRequest {
-            consumer_key: &self.consumer_key,
-            redirect_uri: &self.redirect_uri,
-        };
-
-        let url = "https://getpocket.com/v3/oauth/request";
-
+    pub fn new(consumer_key: String, redirect_uri: String) -> Result<Self> {
         let mut headers = header::HeaderMap::new();
         headers.insert(
             "Content-Type",
@@ -103,15 +88,81 @@ impl GetPocket {
             .default_headers(headers)
             .build()?;
 
+        let reqwester = Reqwester { client };
+
+        let get_pocket = Self {
+            consumer_key,
+            redirect_uri,
+            reqwester,
+            token: Token::default(),
+        };
+
+        Ok(get_pocket)
+    }
+
+    pub async fn get_request_token(&mut self) -> Result<&mut Self> {
+        let url = "https://getpocket.com/v3/oauth/request";
+
+        #[derive(Serialize)]
+        struct RequestParams<'a> {
+            consumer_key: &'a str,
+            redirect_uri: &'a str,
+        }
+
+        #[derive(Deserialize)]
+        struct RequestCode {
+            code: String,
+        }
+
+        let map = RequestParams {
+            consumer_key: &self.consumer_key,
+            redirect_uri: &self.redirect_uri,
+        };
+
+        let client = &self.reqwester.client;
         let res = client.post(url).json(&map).send().await?;
 
-        match res.json::<Token>().await {
-            Ok(code) => self.token = Some(code),
+        // HTTP/1.1 200 OK
+        // Content-Type: application/json
+        // Status: 200 OK
+        //
+        // TODO: check into GET_TOKEN_ERROR
+
+        match res.json::<RequestCode>().await {
+            Ok(code) => {
+                let mut token = Token::new();
+                let RequestCode { code } = code;
+                token.set_request_token(&code);
+                self.token = token.finish();
+            }
             Err(err) => Err(err)?,
         }
 
-        dbg!(&self);
+        Ok(self)
+    }
 
-        Ok(String::from(""))
+    pub async fn get_access_token(&mut self) -> Result<&mut Self> {
+        let url = "https://getpocket.com/v3/oauth/authorize";
+
+        #[derive(Serialize)]
+        struct RequestParams<'a> {
+            consumer_key: &'a str,
+            code: &'a str,
+        }
+
+        let map = match &self.token.request_token {
+            Some(code) => RequestParams {
+                consumer_key: &self.consumer_key,
+                code,
+            },
+            None => return Err(anyhow::anyhow!("request_token uninitialized")),
+        };
+
+        let client = &self.reqwester.client;
+        let res = client.post(url).json(&map).send().await?;
+
+        dbg!(&res.text().await);
+
+        Ok(self)
     }
 }
