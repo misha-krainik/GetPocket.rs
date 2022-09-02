@@ -34,17 +34,33 @@ mod tests {
 
         let mut get_pocket = GetPocket::new(consumer_key, redirect_url).expect("Cannot init GetPocket instance");
         let r = get_pocket
-            .get_request_token()
-            .await
-            .unwrap()
             .get_access_token()
             .await
+            .map_err(|e| { eprintln!("{:?}", &e); e })
             .unwrap();
 
-        dbg!(&r);
+        if r.save_access_token() {
+            println!("Token was stored")
+        }
+
+        dbg!(&r.list_of_items().await.unwrap());
 
         assert!(false);
 
         // assert!(r.is_ok());
     }
 }
+
+/*
+POST /v3/add HTTP/1.1
+Host: getpocket.com
+Content-Type: application/json; charset=UTF-8
+X-Accept: application/json
+
+{"url":"http:\/\/pocket.co\/s8Kga",
+"title":"iTeaching: The New Pedagogy (How the iPad is Inspiring Better Ways of
+Teaching)",
+"time":1346976937,
+"consumer_key":"1234-abcd1234abcd1234abcd1234",
+"access_token":"5678defg-5678-defg-5678-defg56"}
+*/

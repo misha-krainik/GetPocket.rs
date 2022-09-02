@@ -1,6 +1,9 @@
 use anyhow::Result;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
+use std::{thread, time};
+use webbrowser;
+
 //        use std::collections::HashMap;
 
 struct TokenError {
@@ -35,7 +38,7 @@ const GET_TOKEN_ERROR: [TokenError; 7] = [
 
 #[derive(Deserialize, Default, Clone, Debug)]
 struct Token {
-    request_token: Option<String>,
+    code: Option<String>,
     access_token: Option<String>,
 }
 
@@ -44,9 +47,9 @@ impl<'a> Token {
         Self::default()
     }
 
-    fn set_request_token(&mut self, request_token: &str) {
-        let request_token = request_token.to_string();
-        self.request_token = Some(request_token);
+    fn set_code(&mut self, code: &str) {
+        let code = code.to_string();
+        self.code = Some(code);
     }
 
     fn set_access_token(&mut self, access_token: &str) {
@@ -90,17 +93,39 @@ impl GetPocket {
 
         let reqwester = Reqwester { client };
 
+        let mut token = Token::new();
+
+        if let Ok(access_token) = std::env::var("GET_POCKET_ACCESS_TOKEN") {
+            dbg!("GOT");
+            token.set_access_token(&access_token)
+        }
+
         let get_pocket = Self {
             consumer_key,
             redirect_uri,
             reqwester,
-            token: Token::default(),
+            token,
         };
 
         Ok(get_pocket)
     }
 
-    pub async fn get_request_token(&mut self) -> Result<&mut Self> {
+    pub fn save_access_token(&self) -> bool {
+        if let Some(ref access_token) = self.token.access_token {
+            // Sets the environment variable key for the currently running process !!!
+            std::env::set_var("GET_POCKET_ACCESS_TOKEN", access_token);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub async fn get_access_token(&mut self) -> Result<&mut Self> {
+        if self.token.access_token.is_some() {
+            dbg!("access_token exists");
+            return Ok(self);
+        }
+
         let url = "https://getpocket.com/v3/oauth/request";
 
         #[derive(Serialize)]
@@ -130,10 +155,14 @@ impl GetPocket {
 
         match res.json::<RequestCode>().await {
             Ok(code) => {
-                let mut token = Token::new();
                 let RequestCode { code } = code;
-                token.set_request_token(&code);
-                self.token = token.finish();
+                if webbrowser::open(&format!("https://getpocket.com/auth/authorize?request_token={code}&redirect_uri=https://getpocket.com")).is_ok() {
+                    let wait_time = time::Duration::from_millis(6000);
+                    thread::sleep(wait_time);
+
+                    self.token.set_code(&code);
+                    self.get_request_access_token().await?;
+                }
             }
             Err(err) => Err(err)?,
         }
@@ -141,16 +170,16 @@ impl GetPocket {
         Ok(self)
     }
 
-    pub async fn get_access_token(&mut self) -> Result<&mut Self> {
+    async fn get_request_access_token(&mut self) -> Result<&mut Self> {
         let url = "https://getpocket.com/v3/oauth/authorize";
 
-        #[derive(Serialize)]
+        #[derive(Debug, Serialize)]
         struct RequestParams<'a> {
             consumer_key: &'a str,
             code: &'a str,
         }
 
-        let map = match &self.token.request_token {
+        let map = match &self.token.code {
             Some(code) => RequestParams {
                 consumer_key: &self.consumer_key,
                 code,
@@ -158,11 +187,50 @@ impl GetPocket {
             None => return Err(anyhow::anyhow!("request_token uninitialized")),
         };
 
+        #[derive(Deserialize)]
+        struct RequestAccessToken {
+            access_token: String,
+        }
+
+        // dbg!(&serde_json::to_string(&map));
+
         let client = &self.reqwester.client;
         let res = client.post(url).json(&map).send().await?;
 
-        dbg!(&res.text().await);
+        // dbg!(&res.text().await);
+
+        match res.json::<RequestAccessToken>().await {
+            Ok(RequestAccessToken { access_token }) =>
+                self.token.set_access_token(&access_token),
+            Err(err) => Err(err)?,
+        }
 
         Ok(self)
+    }
+
+    pub async fn list_of_items(&self) -> Result<serde_json::Value> {
+        let url = "https://getpocket.com/v3/get";
+
+        #[derive(Debug, Serialize)]
+        struct RequestParams<'a> {
+            consumer_key: &'a str,
+            access_token: &'a str,
+            count: i32,
+        }
+        let params = match &self.token.access_token {
+            Some(access_token) => RequestParams{
+                access_token,
+                consumer_key: &self.consumer_key,
+                count: 10,
+            },
+            None => return Err(anyhow::anyhow!("No access_token"))
+        };
+
+        let client = &self.reqwester.client;
+        let res = client.post(url).json(&params).send().await?;
+
+        dbg!(&res.text().await);
+
+        Ok(serde_json::json![{}])
     }
 }
