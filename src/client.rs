@@ -1,5 +1,4 @@
 use anyhow::Result;
-use reqwest::header;
 use serde::{Deserialize, Serialize};
 use std::{thread, time};
 use webbrowser;
@@ -76,7 +75,56 @@ pub struct GetPocket {
 }
 
 impl GetPocket {
-    pub fn new(consumer_key: String, redirect_uri: String) -> Result<Self> {
+    pub async fn init<F>(consumer_key: String, redirect_uri: String, f: F) -> Result<Self>
+    where
+        F: for<'a> FnOnce(&'a str),
+    {
+        let token = Token::new();
+
+        let reqwester = Self::init_reqwester();
+
+        let mut get_pocket = Self {
+            consumer_key,
+            redirect_uri,
+            reqwester,
+            token,
+        };
+
+        get_pocket.get_access_token().await?;
+
+        if let Some(ref access_token) = get_pocket.token.access_token {
+            f(access_token);
+
+            Ok(get_pocket)
+        } else {
+            Err(anyhow::format_err!(""))
+        }
+    }
+
+    pub async fn new(
+        consumer_key: String,
+        redirect_uri: String,
+        access_token: String,
+    ) -> Result<Self> {
+        let mut token = Token::new();
+
+        token.set_access_token(&access_token);
+
+        let reqwester = Self::init_reqwester();
+
+        let get_pocket = Self {
+            consumer_key,
+            redirect_uri,
+            reqwester,
+            token,
+        };
+
+        Ok(get_pocket)
+    }
+
+    fn init_reqwester() -> Reqwester {
+        use reqwest::header;
+
         let mut headers = header::HeaderMap::new();
         headers.insert(
             "Content-Type",
@@ -89,35 +137,10 @@ impl GetPocket {
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
-            .build()?;
+            .build()
+            .unwrap();
 
-        let reqwester = Reqwester { client };
-
-        let mut token = Token::new();
-
-        if let Ok(access_token) = std::env::var("GET_POCKET_ACCESS_TOKEN") {
-            dbg!("GOT");
-            token.set_access_token(&access_token)
-        }
-
-        let get_pocket = Self {
-            consumer_key,
-            redirect_uri,
-            reqwester,
-            token,
-        };
-
-        Ok(get_pocket)
-    }
-
-    pub fn save_access_token(&self) -> bool {
-        if let Some(ref access_token) = self.token.access_token {
-            // Sets the environment variable key for the currently running process !!!
-            std::env::set_var("GET_POCKET_ACCESS_TOKEN", access_token);
-            true
-        } else {
-            false
-        }
+        Reqwester { client }
     }
 
     pub async fn get_access_token(&mut self) -> Result<&mut Self> {
@@ -200,8 +223,7 @@ impl GetPocket {
         // dbg!(&res.text().await);
 
         match res.json::<RequestAccessToken>().await {
-            Ok(RequestAccessToken { access_token }) =>
-                self.token.set_access_token(&access_token),
+            Ok(RequestAccessToken { access_token }) => self.token.set_access_token(&access_token),
             Err(err) => Err(err)?,
         }
 
@@ -218,12 +240,12 @@ impl GetPocket {
             count: i32,
         }
         let params = match &self.token.access_token {
-            Some(access_token) => RequestParams{
+            Some(access_token) => RequestParams {
                 access_token,
                 consumer_key: &self.consumer_key,
                 count: 10,
             },
-            None => return Err(anyhow::anyhow!("No access_token"))
+            None => return Err(anyhow::anyhow!("No access_token")),
         };
 
         let client = &self.reqwester.client;
