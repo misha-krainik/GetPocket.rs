@@ -1,9 +1,10 @@
-use anyhow::Result;
+#![allow(dead_code)]
+
+use anyhow::{bail, format_err, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap as Map;
 use std::{thread, time};
 use webbrowser;
-
-//        use std::collections::HashMap;
 
 struct TokenError {
     http_status: u32,
@@ -66,6 +67,16 @@ struct Reqwester {
     client: reqwest::Client,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RecordItem {
+    pub status: i32,
+    #[serde(default)]
+    pub complete: Option<i32>,
+    pub error: Option<String>,
+    pub since: i32,
+    pub list: Map<String, serde_json::Value>,
+}
+
 #[derive(Debug)]
 pub struct GetPocket {
     consumer_key: String,
@@ -122,27 +133,6 @@ impl GetPocket {
         Ok(get_pocket)
     }
 
-    fn init_reqwester() -> Reqwester {
-        use reqwest::header;
-
-        let mut headers = header::HeaderMap::new();
-        headers.insert(
-            "Content-Type",
-            header::HeaderValue::from_static("application/json; charset=UTF-8"),
-        );
-        headers.insert(
-            "X-Accept",
-            header::HeaderValue::from_static("application/json"),
-        );
-
-        let client = reqwest::Client::builder()
-            .default_headers(headers)
-            .build()
-            .unwrap();
-
-        Reqwester { client }
-    }
-
     pub async fn get_access_token(&mut self) -> Result<&mut Self> {
         if self.token.access_token.is_some() {
             dbg!("access_token exists");
@@ -193,6 +183,27 @@ impl GetPocket {
         Ok(self)
     }
 
+    fn init_reqwester() -> Reqwester {
+        use reqwest::header;
+
+        let mut headers = header::HeaderMap::new();
+        headers.insert(
+            "Content-Type",
+            header::HeaderValue::from_static("application/json; charset=UTF-8"),
+        );
+        headers.insert(
+            "X-Accept",
+            header::HeaderValue::from_static("application/json"),
+        );
+
+        let client = reqwest::Client::builder()
+            .default_headers(headers)
+            .build()
+            .unwrap();
+
+        Reqwester { client }
+    }
+
     async fn get_request_access_token(&mut self) -> Result<&mut Self> {
         let url = "https://getpocket.com/v3/oauth/authorize";
 
@@ -215,12 +226,8 @@ impl GetPocket {
             access_token: String,
         }
 
-        // dbg!(&serde_json::to_string(&map));
-
         let client = &self.reqwester.client;
         let res = client.post(url).json(&map).send().await?;
-
-        // dbg!(&res.text().await);
 
         match res.json::<RequestAccessToken>().await {
             Ok(RequestAccessToken { access_token }) => self.token.set_access_token(&access_token),
@@ -230,29 +237,182 @@ impl GetPocket {
         Ok(self)
     }
 
-    pub async fn list_of_items(&self) -> Result<serde_json::Value> {
+    pub async fn list_of_items_with_params(
+        &self,
+        state: RecordItemState,
+        favorite: RecordItemFavorite,
+        tag: RecordItemTag,
+        content_type: RecordItemContentType,
+        sort: RecordItemSort,
+        detail_type: RecordItemDetailType,
+        search: Option<String>,
+        domain: Option<String>,
+        since: Option<i32>,
+        offset: i32,
+        count: i32,
+    ) -> Result<RecordItem> {
         let url = "https://getpocket.com/v3/get";
 
-        #[derive(Debug, Serialize)]
+        #[derive(Serialize)]
         struct RequestParams<'a> {
             consumer_key: &'a str,
             access_token: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            state: Option<String>, // ItemState,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            favorite: Option<i32>, // RecordItemfavorite,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            tag: Option<String>, // RecordItemTag,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            #[serde(rename = "contentType")]
+            content_type: Option<String>, // RecordItemContentType,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            sort: Option<String>, // RecordItemSort,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            #[serde(rename = "detailType")]
+            detail_type: Option<String>, // RecordItemDetailType,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            search: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            domain: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            since: Option<i32>,
+            offset: i32,
             count: i32,
         }
         let params = match &self.token.access_token {
             Some(access_token) => RequestParams {
-                access_token,
                 consumer_key: &self.consumer_key,
-                count: 10,
+                access_token,
+                state: match state {
+                    RecordItemState::All => Some(String::from("all")),
+                    RecordItemState::Unread => None, // default
+                    RecordItemState::Archive => Some(String::from("archive")),
+                },
+                favorite: match favorite {
+                    RecordItemFavorite::All => None,
+                    RecordItemFavorite::Unfavorited => Some(0),
+                    RecordItemFavorite::Favorited => Some(1),
+                },
+                tag: match tag {
+                    RecordItemTag::All => None,
+                    RecordItemTag::TagName(tag) => Some(tag),
+                    RecordItemTag::Untagged => Some(String::from("_untagged_")),
+                },
+                content_type: match content_type {
+                    RecordItemContentType::All => None,
+                    RecordItemContentType::Article => Some(String::from("article")),
+                    RecordItemContentType::Video => Some(String::from("video")),
+                    RecordItemContentType::Image => Some(String::from("image")),
+                },
+                sort: match sort {
+                    RecordItemSort::All => None,
+                    RecordItemSort::Newest => Some(String::from("newest")),
+                    RecordItemSort::Oldest => Some(String::from("oldest")),
+                    RecordItemSort::Title => Some(String::from("title")),
+                    RecordItemSort::Site => Some(String::from("site")),
+                },
+                detail_type: match detail_type {
+                    RecordItemDetailType::All => None,
+                    RecordItemDetailType::Simple => Some(String::from("simple")),
+                    RecordItemDetailType::Complete => Some(String::from("complete")),
+                },
+                search: match search {
+                    Some(search) if !search.is_empty() => Some(search),
+                    _ => None,
+                },
+                domain: match domain {
+                    Some(domain) if !domain.is_empty() => Some(domain),
+                    _ => None,
+                },
+                since: match since {
+                    Some(since) if since >= 0 => Some(since),
+                    _ => None,
+                },
+                offset,
+                count,
+                // offset: match offset {
+                //     0..=i32::MAX => offset,
+                //     _ => bail!("Offset is not a positive"),
+                // },
+                // count: match count {
+                //     0..=i32::MAX => offset,
+                //     _ => bail!("Count is not a positive"),
+                // },
             },
-            None => return Err(anyhow::anyhow!("No access_token")),
+            None => bail!("No access_token"),
         };
 
         let client = &self.reqwester.client;
         let res = client.post(url).json(&params).send().await?;
+        let res_body = &res.text().await?;
 
-        dbg!(&res.text().await);
+        let res_ser: RecordItem = serde_json::from_str(&res_body).map_err(|e| format_err!(e))?;
 
-        Ok(serde_json::json![{}])
+        Ok(res_ser)
     }
+
+    pub async fn list_of_items_paginate(
+        &self,
+        offset: i32,
+        count: i32,
+    ) -> Result<RecordItem> {
+        self.list_of_items_with_params(
+            RecordItemState::All,
+            RecordItemFavorite::All,
+            RecordItemTag::All,
+            RecordItemContentType::All,
+            RecordItemSort::All,
+            RecordItemDetailType::All,
+            None,
+            None,
+            None,
+            offset,
+            count,
+        )
+        .await
+    }
+
+    pub async fn list_of_items(&self) -> Result<RecordItem> {
+        self.list_of_items_paginate(0, 1).await
+    }
+}
+
+pub enum RecordItemState {
+    All,
+    Unread,
+    Archive,
+}
+
+pub enum RecordItemFavorite {
+    All,
+    Unfavorited,
+    Favorited,
+}
+
+pub enum RecordItemTag {
+    All,
+    TagName(String),
+    Untagged,
+}
+
+pub enum RecordItemContentType {
+    All,
+    Article,
+    Video,
+    Image,
+}
+
+pub enum RecordItemSort {
+    All,
+    Newest,
+    Oldest,
+    Title,
+    Site,
+}
+
+pub enum RecordItemDetailType {
+    All,
+    Simple,
+    Complete,
 }
