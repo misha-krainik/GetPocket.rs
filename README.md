@@ -1,3 +1,11 @@
+** use get_pocket **
+
+Rust crate to https://getpocket.com/developer/docs/overview
+
+```
+$cargo add get_pocket
+```
+
 ```rust
 fn main() {
         let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
