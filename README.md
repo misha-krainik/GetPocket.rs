@@ -1,5 +1,7 @@
 ### use get_pocket;
 
+###### Status: minimal working version
+
 Rust crate to https://getpocket.com/developer/docs/overview
 
 ```
@@ -19,7 +21,7 @@ fn main() {
                     .await
                     .expect("Cannot init GetPocket instance");
 
-        dbg!(&get_pocket.add_item("https://getpocket.com/developer/docs/v3/add").await.unwrap());
+        dbg!(&get_pocket.list_of_items().await.unwrap());
 }
 ```
 ##### Response: List of items
@@ -73,7 +75,7 @@ fn main() {
                     .await
                     .expect("Cannot init GetPocket instance");
 
-        dbg!(&get_pocket.list_of_items().await.unwrap());
+        dbg!(&get_pocket.add_item("https://getpocket.com/developer/docs/v3/add").await.unwrap());
 }
 ```
 ##### Response: Add new item
@@ -123,7 +125,45 @@ RecordAdded {
 ```
 ##### ACCESS TOKEN
 
+``` rust
+async fn main() {
+    let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
+    let redirect_url = std::env::var("GET_POCKET_REDIRECT_URL").expect("ENV must be set");
+
+    let pocket = GetPocket::init(consumer_key, redirect_url, |access_token| {
+                // ! save ACCESS_TOKEN for next requests
+                println!("{}",  access_token);
+            })
+            .await
+            .expect("Cannot init GetPocket instance");
+}
+```
+##### FROM EXAMPLES
+
 ```rust
+extern crate getpocket;
+use getpocket::GetPocket;
+
+#[tokio::main]
+async fn main() {
+    let get_pocket: GetPocket = init_get_pocket().await;
+
+    dbg!(&get_pocket.list_of_items_with_params(
+        RecordItemState::All,
+        RecordItemFavorite::All,
+        RecordItemTag::All,
+        RecordItemContentType::All,
+        RecordItemSort::All,
+        RecordItemDetailType::All,
+        None,
+        None,
+        None,
+        0,
+        25,
+    ).await.unwrap());
+}
+
+async fn init_get_pocket() -> GetPocket {
     let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
     let redirect_url = std::env::var("GET_POCKET_REDIRECT_URL").expect("ENV must be set");
     let mut current_path = std::env::current_exe().unwrap();
@@ -144,15 +184,41 @@ RecordAdded {
                 db.put("access_token", access_token).unwrap();
             })
             .await
-            .map_err(|e| {
-                eprintln!("{:?}", &e);
-                e
-            })
             .expect("Cannot init GetPocket instance");
 
             pocket
         }
     };
 
-    dbg!(&get_pocket.token);
+    get_pocket
+}
+```
+#### ARCHIVE ITEM
+
+```rust
+
+#[tokio::main]
+async fn main() {
+    let get_pocket = init_get_pocket().await;
+
+    dbg!(&get_pocket
+        .bulk_modify_raw_params("actions=%5B%7B%22action%22%3A%22archive%22%2C%22time%22%3A1348853312%2C%22item_id%22%3A229279689%7D%5D")
+        .await
+        .unwrap());
+}
+```
+##### Response: archive item
+
+```rust
+RecordModified {
+    action_results: [
+        true,
+    ],
+    status: 1,
+}
+```
+##### RUN OTHER EXAMPLES
+
+```
+$ cargo run --example list
 ```

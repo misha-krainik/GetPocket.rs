@@ -125,7 +125,6 @@ impl GetPocket {
 
     pub async fn get_access_token(&mut self) -> Result<&mut Self> {
         if self.token.access_token.is_some() {
-            dbg!("access_token exists");
             return Ok(self);
         }
 
@@ -402,17 +401,42 @@ impl GetPocket {
         let res = client.post(endpoint).json(&params).send().await?;
         let res_body = &res.text().await?;
 
-        dbg!(&res_body);
         let res_ser: RecordAdded = serde_json::from_str(&res_body).map_err(|e| format_err!(e))?;
 
         Ok(res_ser)
-
     }
 
     /// adding a single item
     pub async fn add_item<'a>(&self, url: &'a str) -> Result<RecordAdded> {
-        self.add_item_with_params(url, None, None, None)
-            .await
+        self.add_item_with_params(url, None, None, None).await
+    }
+
+    pub async fn bulk_modify_raw_params<'a>(&self, params: &'a str) -> Result<RecordModified> {
+        let endpoint = "https://getpocket.com/v3/send";
+
+        #[derive(Serialize)]
+        struct RequestParams<'a> {
+            consumer_key: &'a str,
+            access_token: &'a str,
+        }
+
+        let access_token = match &self.token.access_token {
+            Some(access_token) => access_token,
+            None => bail!("No access_token"),
+        };
+
+        let consumer_key = &self.consumer_key;
+
+        let params = format!("{endpoint}?{params}&access_token={access_token}&consumer_key={consumer_key}");
+
+        let client = &self.reqwester.client;
+        let res = client.post(&params).send().await?;
+        let res_body = &res.text().await?;
+
+        let res_ser: RecordModified =
+            serde_json::from_str(&res_body).map_err(|e| format_err!(e))?;
+
+        Ok(res_ser)
     }
 }
 
@@ -470,3 +494,16 @@ pub struct RecordAdded {
     pub item: Map<String, serde_json::Value>,
     pub status: i32,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct RecordModified {
+    pub action_results: Vec<bool>,
+    pub status: i32,
+}
+
+// #[derive(Debug, Deserialize)]
+// pub struct RecordModAction<'a> {
+//     pub action: &'a str, // TODO: structured
+//     pub params: Option<Map<String, String>>,
+//     pub time: Option<i32>,
+// }
