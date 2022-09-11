@@ -1,9 +1,12 @@
 [package]
 name = "getpocket"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Rust API for https://getpocket.com/"
 license = "AGPL-3.0-only"
+exclude = [
+    ".gitignore",
+]
 
 [dependencies]
 anyhow = "1"
@@ -12,6 +15,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 webbrowser = "0.7.1"
+
+[[example]]
+name = "list"
+path = "examples/list.rs"
+
+[[example]]
+name = "add"
+path = "examples/add.rs"
 
 [dev-dependencies]
 rocksdb = "0.19"
