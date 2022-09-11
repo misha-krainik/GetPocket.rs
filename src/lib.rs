@@ -58,6 +58,22 @@ mod tests {
 
         dbg!(&get_pocket.list_of_items().await.unwrap());
 
+        // dbg!(&get_pocket.list_of_items_paginate(0, 10).await.unwrap());
+
+        // dbg!(&get_pocket.list_of_items_with_params(
+        //     RecordItemState::All,
+        //     RecordItemFavorite::All,
+        //     RecordItemTag::All,
+        //     RecordItemContentType::All,
+        //     RecordItemSort::All,
+        //     RecordItemDetailType::All,
+        //     None,
+        //     None,
+        //     None,
+        //     0,
+        //     25,
+        // ).await.unwrap());
+
         assert!(false);
     }
 
