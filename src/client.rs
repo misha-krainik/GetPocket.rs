@@ -373,8 +373,9 @@ impl GetPocket {
         .await
     }
 
+
     pub async fn list_of_items(&self) -> Result<RecordItem> {
-        self.list_of_items_paginate(0, 1).await
+        self.list_of_items_paginate(0, 25).await
     }
 }
 
