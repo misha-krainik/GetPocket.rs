@@ -1,13 +1,17 @@
-### use get_pocket;
+### use getpocket;
 
-###### Status: minimal working version
+Crates.io
+https://crates.io/crates/getpocket
 
-Rust crate to https://getpocket.com/developer/docs/overview
+Official GetPocket API docs
+https://getpocket.com/developer/docs/overview
+
 
 ```
-$cargo add getpocket
+$ cargo add getpocket
 
 ```
+The token can be obtained through the built-in `GetPocket::init` method, or you can use the ready-made method for executing requests.
 
 ##### List of items
 
@@ -123,7 +127,7 @@ RecordAdded {
     status: 1,
 }
 ```
-##### ACCESS TOKEN
+##### Access token
 
 ``` rust
 async fn main() {
@@ -138,7 +142,7 @@ async fn main() {
             .expect("Cannot init GetPocket instance");
 }
 ```
-##### FROM EXAMPLES
+##### Possible use case
 
 ```rust
 extern crate getpocket;
@@ -193,7 +197,7 @@ async fn init_get_pocket() -> GetPocket {
     get_pocket
 }
 ```
-#### ARCHIVE ITEM
+#### Archive item
 
 ```rust
 
@@ -207,7 +211,7 @@ async fn main() {
         .unwrap());
 }
 ```
-##### Response: archive item
+##### Response: Archive item
 
 ```rust
 RecordModified {
@@ -217,8 +221,16 @@ RecordModified {
     status: 1,
 }
 ```
-##### RUN OTHER EXAMPLES
+##### Run other examples
 
 ```
 $ cargo run --example list
 ```
+
+#### Dependencies
+* anyhow
+* reqwest
+* serde
+* serde_json
+* tokio
+* webbrowser
