@@ -1,5 +1,7 @@
 extern crate getpocket;
 use getpocket::GetPocket;
+use webbrowser;
+use std::{thread, time};
 
 #[tokio::main]
 async fn main() {
@@ -28,9 +30,21 @@ async fn init_get_pocket() -> GetPocket {
             pocket
         }
         None => {
-            let pocket = GetPocket::init(consumer_key, redirect_url, |access_token| {
-                db.put("access_token", access_token).unwrap();
-            })
+            let pocket = GetPocket::init(
+                consumer_key,
+                redirect_url,
+                |access_token| {
+                    db.put("access_token", access_token).unwrap();
+                },
+                |auth_url| {
+                    let ret = webbrowser::open(auth_url).is_ok();
+
+                    let wait_time = time::Duration::from_millis(6000);
+                    thread::sleep(wait_time);
+
+                    Ok(ret)
+                },
+            )
             .await
             .map_err(|e| {
                 eprintln!("{:?}", &e);

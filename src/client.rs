@@ -3,8 +3,6 @@
 use anyhow::{bail, format_err, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap as Map;
-use std::{thread, time};
-use webbrowser;
 
 struct TokenError {
     http_status: u32,
@@ -76,9 +74,15 @@ pub struct GetPocket {
 }
 
 impl GetPocket {
-    pub async fn init<F>(consumer_key: String, redirect_uri: String, f: F) -> Result<Self>
+    pub async fn init<F, C>(
+        consumer_key: String,
+        redirect_uri: String,
+        store_fn: F,
+        opener_fn: C,
+    ) -> Result<Self>
     where
         F: for<'a> FnOnce(&'a str),
+        C: for<'b> FnOnce(&'b str) -> Result<bool>
     {
         let token = Token::new();
 
@@ -91,10 +95,10 @@ impl GetPocket {
             token,
         };
 
-        get_pocket.get_access_token().await?;
+        get_pocket.get_access_token_manual_open(opener_fn).await?;
 
         if let Some(ref access_token) = get_pocket.token.access_token {
-            f(access_token);
+            store_fn(access_token);
 
             Ok(get_pocket)
         } else {
@@ -123,9 +127,9 @@ impl GetPocket {
         Ok(get_pocket)
     }
 
-    pub async fn get_access_token(&mut self) -> Result<&mut Self> {
-        if self.token.access_token.is_some() {
-            return Ok(self);
+    async fn token_code(&mut self) -> Result<String> {
+        if let Some(access_token) = &self.token.access_token {
+            return Ok(access_token.clone());
         }
 
         let endpoint = "https://getpocket.com/v3/oauth/request";
@@ -155,21 +159,28 @@ impl GetPocket {
         //
         // TODO: check into GET_TOKEN_ERROR
 
-        match res.json::<RequestCode>().await {
-            Ok(code) => {
-                let RequestCode { code } = code;
-                if webbrowser::open(&format!("https://getpocket.com/auth/authorize?request_token={code}&redirect_uri=https://getpocket.com")).is_ok() {
-                    let wait_time = time::Duration::from_millis(6000);
-                    thread::sleep(wait_time);
+        res.json::<RequestCode>()
+            .await
+            .map(|request_code| request_code.code)
+            .map_err(Into::into)
+    }
 
-                    self.token.set_code(&code);
-                    self.get_request_access_token().await?;
-                }
-            }
-            Err(err) => Err(err)?,
+    async fn get_access_token_manual_open<F>(&mut self, f: F) -> Result<&mut Self>
+    where
+        F: for<'b> FnOnce(&'b str) -> Result<bool>,
+    {
+        let code = self.token_code().await?;
+
+        let is_save = f(&format!("https://getpocket.com/auth/authorize?request_token={code}&redirect_uri=https://getpocket.com"))?;
+
+        if is_save {
+            self.token.set_code(&code);
+            self.get_request_access_token().await?;
+
+            Ok(self)
+        } else {
+            Err(format_err!("Request toke not accepted"))
         }
-
-        Ok(self)
     }
 
     fn init_reqwester() -> Reqwester {
@@ -343,12 +354,12 @@ impl GetPocket {
 
     pub async fn list_of_items_paginate(&self, offset: i32, count: i32) -> Result<RecordItem> {
         self.list_of_items_with_params(
-            RecordItemState::All,
-            RecordItemFavorite::All,
-            RecordItemTag::All,
-            RecordItemContentType::All,
-            RecordItemSort::All,
-            RecordItemDetailType::All,
+            RecordItemState::default(),
+            RecordItemFavorite::default(),
+            RecordItemTag::default(),
+            RecordItemContentType::default(),
+            RecordItemSort::default(),
+            RecordItemDetailType::default(),
             None,
             None,
             None,
@@ -427,7 +438,8 @@ impl GetPocket {
 
         let consumer_key = &self.consumer_key;
 
-        let params = format!("{endpoint}?{params}&access_token={access_token}&consumer_key={consumer_key}");
+        let params =
+            format!("{endpoint}?{params}&access_token={access_token}&consumer_key={consumer_key}");
 
         let client = &self.reqwester.client;
         let res = client.post(&params).send().await?;
@@ -440,32 +452,42 @@ impl GetPocket {
     }
 }
 
+#[derive(Default)]
 pub enum RecordItemState {
     All,
+    #[default]
     Unread,
     Archive,
 }
 
+#[derive(Default)]
 pub enum RecordItemFavorite {
+    #[default]
     All,
     Unfavorited,
     Favorited,
 }
 
+#[derive(Default)]
 pub enum RecordItemTag<'a> {
+    #[default]
     All,
     TagName(&'a str),
     Untagged,
 }
 
+#[derive(Default)]
 pub enum RecordItemContentType {
+    #[default]
     All,
     Article,
     Video,
     Image,
 }
 
+#[derive(Default)]
 pub enum RecordItemSort {
+    #[default]
     All,
     Newest,
     Oldest,
@@ -473,7 +495,9 @@ pub enum RecordItemSort {
     Site,
 }
 
+#[derive(Default)]
 pub enum RecordItemDetailType {
+    #[default]
     All,
     Simple,
     Complete,
