@@ -82,7 +82,7 @@ impl GetPocket {
     ) -> Result<Self>
     where
         F: for<'a> FnOnce(&'a str),
-        C: for<'b> FnOnce(&'b str) -> Result<bool>
+        C: for<'b> FnOnce(&'b str) -> Result<bool>,
     {
         let token = Token::new();
 
@@ -422,6 +422,7 @@ impl GetPocket {
         self.add_item_with_params(url, None, None, None).await
     }
 
+    /// https://getpocket.com/developer/docs/v3/modify
     pub async fn bulk_modify_raw_params<'a>(&self, params: &'a str) -> Result<RecordModified> {
         let endpoint = "https://getpocket.com/v3/send";
 
@@ -449,6 +450,78 @@ impl GetPocket {
             serde_json::from_str(&res_body).map_err(|e| format_err!(e))?;
 
         Ok(res_ser)
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_add(&self, params: &[BulkRequestRecordAdd]) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_archive(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_readd(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_favorite(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_unfavorite(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_delete(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_tags_add(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_tags_remove(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_tags_replace(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_tags_clear(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_tag_rename(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
+    }
+
+    // NOTE: function signature and code can be changed.
+    #[cfg(feature = "unstable")]
+    pub async fn bulk_tag_delete(&self, params: serde_json::Value) -> Result<()> {
+        unimplemented!()
     }
 }
 
@@ -523,6 +596,22 @@ pub struct RecordAdded {
 pub struct RecordModified {
     pub action_results: Vec<bool>,
     pub status: i32,
+}
+
+#[cfg(feature = "unstable")]
+pub struct BulkRequestRecordAdd {
+    /// The id of the item to perform the action on.
+    item_id: i32,
+    /// A Twitter status id; this is used to show tweet attribution.
+    ref_id: i32,
+    /// A comma-delimited list of one or more tags.
+    tags: Option<String>,
+    /// The time the action occurred. Unix epoch in milliseconds
+    time: Option<i32>,
+    /// The title of the item.
+    title: Option<String>,
+    /// The url of the item; provide this only if you do not have an item_id.
+    url: Option<String>,
 }
 
 // #[derive(Debug, Deserialize)]

@@ -1,12 +1,16 @@
 [package]
 name = "getpocket"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Rust API for https://getpocket.com/"
 license = "AGPL-3.0-only"
 exclude = [
     ".gitignore",
 ]
+
+[features]
+default = []
+unstable = []
 
 [dependencies]
 anyhow = "1"

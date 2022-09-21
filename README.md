@@ -134,9 +134,13 @@ async fn main() {
     let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
     let redirect_url = std::env::var("GET_POCKET_REDIRECT_URL").expect("ENV must be set");
 
+    // This is necessary to set one times and save the token
     let pocket = GetPocket::init(consumer_key, redirect_url, |access_token| {
                 // ! save ACCESS_TOKEN for next requests
-                println!("{}",  access_token);
+                println!("Access token is {}",  access_token);
+            }, |auth_url| {
+                // ! redirect the user to Pocket WEB site to authorize this application's request token
+                println!("Open in browser next URL {}",  auth_url);
             })
             .await
             .expect("Cannot init GetPocket instance");
@@ -219,6 +223,17 @@ async fn init_get_pocket() -> GetPocket {
 async fn main() {
     let get_pocket = init_get_pocket().await;
 
+    /*
+    [
+        {
+            "action"   : "archive",
+            "item_id"  : "229279689",
+            "time"     : "1348853312"
+        }
+    ]
+    */
+    // actions is JSON array of actions. See below for details.
+    // API docs here https://getpocket.com/v3/send
     dbg!(&get_pocket
         .bulk_modify_raw_params("actions=%5B%7B%22action%22%3A%22archive%22%2C%22time%22%3A1348853312%2C%22item_id%22%3A229279689%7D%5D")
         .await
@@ -247,4 +262,3 @@ $ cargo run --example list
 * serde
 * serde_json
 * tokio
-* webbrowser
