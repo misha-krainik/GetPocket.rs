@@ -3,11 +3,12 @@
 Official GetPocket API docs
 https://getpocket.com/developer/docs/overview
 
+[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml)
+
 ```rust 
 use getpocket; 
 ```
 
-[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml)
 License: AGPL-3.0-only
 
 Crates.io
