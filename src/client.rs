@@ -54,10 +54,6 @@ impl<'a> Token {
         let access_token = access_token.to_string();
         self.access_token = Some(access_token);
     }
-
-    fn finish(&self) -> Self {
-        self.clone()
-    }
 }
 
 #[derive(Debug)]
@@ -454,73 +450,76 @@ impl GetPocket {
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_add(&self, params: &[BulkRequestRecordAdd]) -> Result<()> {
+    pub async fn bulk_add(&self, _params: &[BulkRecAdd]) -> Result<BulkRecAdded> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_archive(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_archive(&self, _params: &[BulkRecArchive]) -> Result<BulkRecArchived> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_readd(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_readd(&self, _params: &[BulkRecReadd]) -> Result<BulkRecReadded> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_favorite(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_favorite(&self, _params: &[BulkRecFavorite]) -> Result<BulkRecFavorited> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_unfavorite(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_unfavorite(
+        &self,
+        _params: &[BulkRecUnfovorite],
+    ) -> Result<BulkRecUnfovorited> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_delete(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_delete(&self, _params: &[BulkRecDelete]) -> Result<BulkRecDeleted> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_tags_add(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_tags_add(&self, _params: &[BulkTagsAdd]) -> Result<BulkTagsAdded> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_tags_remove(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_tags_remove(&self, _params: &[BulkTagsRemove]) -> Result<BulkTagsRemoved> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_tags_replace(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_tags_replace(&self, _params: &[BulkTagsReplace]) -> Result<BulkTagsReplaced> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_tags_clear(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_tags_clear(&self, _params: &[BulkTagsClear]) -> Result<BulkTagsCleared> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_tag_rename(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_tag_rename(&self, _params: &[BulkTagsRename]) -> Result<BulkTagsRenamed> {
         unimplemented!()
     }
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    pub async fn bulk_tag_delete(&self, params: serde_json::Value) -> Result<()> {
+    pub async fn bulk_tag_delete(&self, _params: &[BulkTagsDelete]) -> Result<BulkTagsDeleted> {
         unimplemented!()
     }
 }
@@ -599,7 +598,7 @@ pub struct RecordModified {
 }
 
 #[cfg(feature = "unstable")]
-pub struct BulkRequestRecordAdd {
+pub struct BulkRecAdd {
     /// The id of the item to perform the action on.
     item_id: i32,
     /// A Twitter status id; this is used to show tweet attribution.
@@ -614,9 +613,81 @@ pub struct BulkRequestRecordAdd {
     url: Option<String>,
 }
 
-// #[derive(Debug, Deserialize)]
-// pub struct RecordModAction<'a> {
-//     pub action: &'a str, // TODO: structured
-//     pub params: Option<Map<String, String>>,
-//     pub time: Option<i32>,
-// }
+#[cfg(feature = "unstable")]
+pub struct BulkRecArchive;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecReadd;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecFavorite;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecUnfovorite;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecDelete;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsAdd;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsRemove;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsReplace;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsClear;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsRename;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsDelete;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecAdded;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecArchived;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecReadded;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecFavorited;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecUnfovorited;
+
+#[cfg(feature = "unstable")]
+pub struct BulkRecDeleted;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsAdded;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsRemoved;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsReplaced;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsCleared;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsRenamed;
+
+#[cfg(feature = "unstable")]
+pub struct BulkTagsDeleted;
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn it_test() {
+        assert!(true)
+    }
+}
