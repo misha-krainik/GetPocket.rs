@@ -1,4 +1,5 @@
 ### use getpocket;
+[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml)
 
 Crates.io
 https://crates.io/crates/getpocket
