@@ -7,8 +7,7 @@ https://getpocket.com/developer/docs/overview
 use getpocket; 
 ```
 
-[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml) [![Cargo.io](https://github.com/mikhail-krainik/getpocket/actions/workflows/release.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/release.yml)
-
+[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml)
 License: AGPL-3.0-only
 
 Crates.io
