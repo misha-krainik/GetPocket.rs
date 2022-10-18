@@ -1,18 +1,28 @@
-### use getpocket;
-[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml)
-
-Crates.io
-https://crates.io/crates/getpocket
+### GetPocket API crate
 
 Official GetPocket API docs
 https://getpocket.com/developer/docs/overview
 
-
+```rust 
+use getpocket; 
 ```
+
+[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml) [![Cargo.io](https://github.com/mikhail-krainik/getpocket/actions/workflows/release.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/release.yml)
+
+License: AGPL-3.0-only
+
+Crates.io
+https://crates.io/crates/getpocket
+
+Documentation
+https://docs.rs/getpocket/latest/getpocket/
+
+##### Tutorial
+```shell
 $ cargo add getpocket
 
 ```
-The token can be obtained through the built-in `GetPocket::init` method, or you can use the ready-made method for executing requests.
+The GetPocket token can be obtained through the built-in `GetPocket::init` method, or you can use the ready-made method for executing requests.
 
 ##### List of items
 
@@ -253,7 +263,7 @@ RecordModified {
 ```
 ##### Run other examples
 
-```
+```shell
 $ cargo run --example list
 ```
 
