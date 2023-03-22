@@ -1,5 +1,5 @@
 extern crate getpocket;
-use getpocket::GetPocket;
+use getpocket::{GetPocket, list::ListExt};
 use webbrowser;
 use std::{thread, time};
 
