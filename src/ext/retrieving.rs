@@ -1,7 +1,17 @@
+use crate::{
+    client::{GetPocket, *},
+    ApiRequestError,
+};
 use anyhow::{bail, format_err, Result};
-use serde::Serialize;
-use crate::client::{GetPocket, *};
 use async_trait::async_trait;
+use serde::Serialize;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum RetrievingError<'a> {
+    #[error("Invalid Params: `{0}`")]
+    InvalidParams(&'a str),
+}
 
 #[derive(Serialize)]
 struct RequestParams<'a> {
@@ -32,7 +42,7 @@ struct RequestParams<'a> {
 }
 
 #[async_trait]
-pub trait ListExt {
+pub trait RetrievingExt {
     async fn list_of_items_with_params<'a>(
         &self,
         state: RecordItemState,
@@ -54,7 +64,7 @@ pub trait ListExt {
 }
 
 #[async_trait]
-impl ListExt for GetPocket {
+impl RetrievingExt for GetPocket {
     async fn list_of_items_with_params<'a>(
         &self,
         state: RecordItemState,
@@ -122,20 +132,17 @@ impl ListExt for GetPocket {
                 },
                 offset,
                 count,
-                // offset: match offset {
-                //     0..=i32::MAX => offset,
-                //     _ => bail!("Offset is not a positive"),
-                // },
-                // count: match count {
-                //     0..=i32::MAX => offset,
-                //     _ => bail!("Count is not a positive"),
-                // },
             },
-            None => bail!("No access_token"),
+            None => bail!(RetrievingError::InvalidParams("No access_token")),
         };
 
         let client = &self.reqwester.client;
         let res = client.post(endpoint).json(&params).send().await?;
+
+        if let Err(err) = ApiRequestError::handler_status(res.status()) {
+            bail!(err);
+        }
+
         let res_body = &res.text().await?;
 
         let res_ser: RecordItem = serde_json::from_str(&res_body).map_err(|e| format_err!(e))?;

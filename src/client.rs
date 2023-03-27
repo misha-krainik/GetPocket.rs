@@ -2,36 +2,21 @@
 use anyhow::{bail, format_err, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap as Map;
+use thiserror::Error;
 
-struct TokenError {
-    http_status: u32,
-    x_error_code: u32,
-    x_error: &'static str,
+use crate::ApiRequestError;
+
+#[derive(Error, Debug)]
+pub enum ClientError<'a> {
+    #[error("{0}")]
+    JsonError(serde_json::Error),
+    #[error("There was an issue with the parameters. `{0}`")]
+    InvalidParams(&'a str),
+    #[error("Access to this resource is restricted")]
+    AccessDenied,
+    #[error("Token authentication failed. Please check your token and try again.")]
+    TokenError,
 }
-
-impl TokenError {
-    const fn new(http_status: u32, x_error_code: u32, x_error: &'static str) -> TokenError {
-        Self {
-            http_status,
-            x_error_code,
-            x_error,
-        }
-    }
-
-    fn is_error(&self, _code: u32) -> Option<Self> {
-        None
-    }
-}
-
-const GET_TOKEN_ERROR: [TokenError; 7] = [
-    TokenError::new(400, 138, "Missing consumer key"),
-    TokenError::new(400, 140, "Missing redirect url"),
-    TokenError::new(403, 152, "Invalid consumer key"),
-    TokenError::new(500, 199, "Pocket server issue"),
-    TokenError::new(501, 199, "Pocket server issue"),
-    TokenError::new(502, 199, "Pocket server issue"),
-    TokenError::new(503, 199, "Pocket server issue"),
-];
 
 #[derive(Deserialize, Default, Clone, Debug)]
 pub struct Token {
@@ -97,7 +82,7 @@ impl GetPocket {
 
             Ok(get_pocket)
         } else {
-            Err(anyhow::format_err!(""))
+            bail!(ClientError::TokenError);
         }
     }
 
@@ -148,11 +133,9 @@ impl GetPocket {
         let client = &self.reqwester.client;
         let res = client.post(endpoint).json(&map).send().await?;
 
-        // HTTP/1.1 200 OK
-        // Content-Type: application/json
-        // Status: 200 OK
-        //
-        // TODO: check into GET_TOKEN_ERROR
+        if let Err(err) = ApiRequestError::handler_status(res.status()) {
+            bail!(err);
+        }
 
         res.json::<RequestCode>()
             .await
@@ -174,7 +157,9 @@ impl GetPocket {
 
             Ok(self)
         } else {
-            Err(format_err!("Request toke not accepted"))
+            bail!(ClientError::InvalidParams(
+                "No token was provided from the callback function."
+            ));
         }
     }
 
@@ -213,7 +198,7 @@ impl GetPocket {
                 consumer_key: &self.consumer_key,
                 code,
             },
-            None => return Err(anyhow::anyhow!("request_token uninitialized")),
+            None => bail!(ClientError::TokenError),
         };
 
         #[derive(Deserialize)]
@@ -223,6 +208,10 @@ impl GetPocket {
 
         let client = &self.reqwester.client;
         let res = client.post(endpoint).json(&map).send().await?;
+
+        if let Err(err) = ApiRequestError::handler_status(res.status()) {
+            bail!(err);
+        }
 
         match res.json::<RequestAccessToken>().await {
             Ok(RequestAccessToken { access_token }) => self.token.set_access_token(&access_token),
@@ -263,11 +252,16 @@ impl GetPocket {
                 tags,
                 tweet_id,
             },
-            None => bail!("No access_token"),
+            None => bail!(ClientError::TokenError),
         };
 
         let client = &self.reqwester.client;
         let res = client.post(endpoint).json(&params).send().await?;
+
+        if let Err(err) = ApiRequestError::handler_status(res.status()) {
+            bail!(err);
+        }
+
         let res_body = &res.text().await?;
 
         let res_ser: RecordAdded = serde_json::from_str(&res_body).map_err(|e| format_err!(e))?;
@@ -292,7 +286,7 @@ impl GetPocket {
 
         let access_token = match &self.token.access_token {
             Some(access_token) => access_token,
-            None => bail!("No access_token"),
+            None => bail!(ClientError::TokenError),
         };
 
         let consumer_key = &self.consumer_key;
@@ -302,10 +296,15 @@ impl GetPocket {
 
         let client = &self.reqwester.client;
         let res = client.post(&params).send().await?;
+
+        if let Err(err) = ApiRequestError::handler_status(res.status()) {
+            bail!(err);
+        }
+
         let res_body = &res.text().await?;
 
         let res_ser: RecordModified =
-            serde_json::from_str(&res_body).map_err(|e| format_err!(e))?;
+            serde_json::from_str(&res_body).map_err(|e| format_err!(ClientError::JsonError(e)))?;
 
         Ok(res_ser)
     }
@@ -385,7 +384,6 @@ impl GetPocket {
         unimplemented!()
     }
 }
-
 
 #[derive(Default)]
 pub enum RecordItemState {

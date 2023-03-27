@@ -1,7 +1,7 @@
 extern crate getpocket;
-use getpocket::{GetPocket, list::ListExt};
-use webbrowser;
+use getpocket::{retrieving::RetrievingExt, GetPocket};
 use std::{thread, time};
+use webbrowser;
 
 #[tokio::main]
 async fn main() {
