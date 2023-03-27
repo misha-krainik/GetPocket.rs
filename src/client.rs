@@ -221,6 +221,7 @@ impl GetPocket {
         Ok(self)
     }
 
+    // ADD
     pub async fn add_item_with_params<'a>(
         &self,
         url: &'a str,
@@ -274,6 +275,7 @@ impl GetPocket {
         self.add_item_with_params(url, None, None, None).await
     }
 
+    // EDIT
     /// https://getpocket.com/developer/docs/v3/modify
     pub async fn bulk_modify_raw_params<'a>(&self, params: &'a str) -> Result<RecordModified> {
         let endpoint = "https://getpocket.com/v3/send";

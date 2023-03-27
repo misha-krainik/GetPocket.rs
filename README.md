@@ -268,8 +268,11 @@ $ cargo run --example list
 ```
 
 #### Dependencies
-* anyhow
+* tokio 
 * reqwest
-* serde
+* async-trait0
+* serde 
 * serde_json
-* tokio
+* anyhow
+* thiserror
+
