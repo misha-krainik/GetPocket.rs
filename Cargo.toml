@@ -36,3 +36,4 @@ path = "examples/modify.rs"
 [dev-dependencies]
 rocksdb = "0.19"
 webbrowser = "0.8.3"
+lazy_static = "1.4.0"

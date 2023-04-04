@@ -40,12 +40,12 @@ impl<'a> Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Reqwester {
     pub client: reqwest::Client,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GetPocket {
     pub consumer_key: String,
     pub redirect_uri: String,
