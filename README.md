@@ -1,3 +1,6 @@
+# Development is currently on hold as my Mozilla account has been blocked, preventing access to GetPocket. Any copies or forks are strictly prohibited at this time.
+---
+
 ### GetPocket API crate
 
 Official GetPocket API docs
