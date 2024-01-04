@@ -1,11 +1,13 @@
 extern crate getpocket;
 
+use getpocket::{modifying::ModifyingExt, GetPocket}; 
+
 #[path = "../tests/test_helper.rs"]
 mod lib;
 
 #[tokio::main]
 async fn main() {
-    let get_pocket = lib::init_get_pocket().await;
+    let get_pocket: GetPocket = lib::init_get_pocket().await;
 
     /*
     [

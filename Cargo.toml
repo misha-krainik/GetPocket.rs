@@ -1,6 +1,6 @@
 [package]
 name = "getpocket"
-version = "0.2.3"
+version = "0.2.5-rc1"
 edition = "2021"
 description = "Rust API for https://getpocket.com/"
 license = "AGPL-3.0-only"
@@ -14,11 +14,11 @@ unstable = []
 
 [dependencies]
 anyhow = "1"
-async-trait = "0.1.68"
+async-trait = "0.1"
 reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "1.0.40"
+thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 
 [[example]]

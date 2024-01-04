@@ -1,13 +1,9 @@
-### GetPocket API crate
+# GetPocket API crate
 
 Official GetPocket API docs
 https://getpocket.com/developer/docs/overview
 
 [![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml)
-
-```rust 
-use getpocket; 
-```
 
 License: AGPL-3.0-only
 
@@ -17,14 +13,19 @@ https://crates.io/crates/getpocket
 Documentation
 https://docs.rs/getpocket/latest/getpocket/
 
-##### Tutorial
-```shell
-$ cargo add getpocket
+### Tutorial
 
+```shell
+cargo add getpocket
 ```
+
+```rust
+use getpocket::{adding::AddingExt, GetPocket}; 
+```
+
 The GetPocket token can be obtained through the built-in `GetPocket::init` method, or you can use the ready-made method for executing requests.
 
-##### List of items
+### List of items
 
 ```rust
 fn main() {
@@ -39,7 +40,8 @@ fn main() {
         dbg!(&get_pocket.list_of_items().await.unwrap());
 }
 ```
-##### Response: List of items
+
+### Response: List of items
 
 ```rust
 RecordItem {
@@ -78,7 +80,8 @@ RecordItem {
     },
 }
 ```
-##### Add new item
+
+### Add new item
 
 ```rust
 fn main() {
@@ -93,7 +96,8 @@ fn main() {
         dbg!(&get_pocket.add_item("https://getpocket.com/developer/docs/v3/add").await.unwrap());
 }
 ```
-##### Response: Add new item
+
+### Response: Add new item
 
 ```rust
 RecordAdded {
@@ -138,7 +142,8 @@ RecordAdded {
     status: 1,
 }
 ```
-##### Access token
+
+### Access token
 
 ``` rust
 async fn main() {
@@ -157,7 +162,8 @@ async fn main() {
             .expect("Cannot init GetPocket instance");
 }
 ```
-##### Possible use case
+
+### Possible use case
 
 ```rust
 extern crate getpocket;
@@ -226,7 +232,8 @@ async fn init_get_pocket() -> GetPocket {
     get_pocket
 }
 ```
-#### Archive item
+
+### Archive item
 
 ```rust
 
@@ -251,7 +258,8 @@ async fn main() {
         .unwrap());
 }
 ```
-##### Response: Archive item
+
+### Response: Archive item
 
 ```rust
 RecordModified {
@@ -261,13 +269,19 @@ RecordModified {
     status: 1,
 }
 ```
-##### Run other examples
+
+### Run other examples
 
 ```shell
-$ cargo run --example list
+cargo run --example list
 ```
 
-#### Dependencies
+```shell
+cargo run --example add
+```
+
+### Dependencies
+
 * tokio 
 * reqwest
 * async-trait0

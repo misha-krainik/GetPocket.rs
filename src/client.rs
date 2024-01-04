@@ -1,10 +1,19 @@
 #![allow(dead_code)]
-use anyhow::{bail, format_err, Result};
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap as Map;
 use thiserror::Error;
 
 use crate::ApiRequestError;
+
+#[cfg(feature = "unstable")]
+const RATE_LIMIT_HEADERS: [(&str, &str); 6] = [
+    ("X-Limit-User-Limit", "Current rate limit enforced per user"),
+    ("X-Limit-User-Remaining", "Number of calls remaining before hitting user's rate limit"),
+    ("X-Limit-User-Reset", "Seconds until user's rate limit resets"),
+    ("X-Limit-Key-Limit", "Current rate limit enforced per consumer key"),
+    ("X-Limit-Key-Remaining", "Number of calls remaining before hitting consumer key's rate limit"),
+    ("X-Limit-Key-Reset: Seconds until consumer key rate limit resets")
+];
 
 #[derive(Error, Debug)]
 pub enum ClientError<'a> {
@@ -75,7 +84,7 @@ impl GetPocket {
             token,
         };
 
-        get_pocket.get_access_token_manual_open(opener_fn).await?;
+        get_pocket.get_access_token_manual_open(opener_fn, None).await?;
 
         if let Some(ref access_token) = get_pocket.token.access_token {
             store_fn(access_token);
@@ -143,13 +152,18 @@ impl GetPocket {
             .map_err(Into::into)
     }
 
-    async fn get_access_token_manual_open<F>(&mut self, f: F) -> Result<&mut Self>
+    async fn get_access_token_manual_open<F>(&mut self, f: F, redirect_uri: Option<&str>) -> Result<&mut Self>
     where
         F: for<'b> FnOnce(&'b str) -> Result<bool>,
     {
         let code = self.token_code().await?;
 
-        let is_save = f(&format!("https://getpocket.com/auth/authorize?request_token={code}&redirect_uri=https://getpocket.com"))?;
+        let redirect_uri = match redirect_uri {
+            Some(redirect_uri) => redirect_uri,
+            None => "https://getpocket.com"
+        };
+
+        let is_save = f(&format!("https://getpocket.com/auth/authorize?request_token={code}&redirect_uri={redirect_uri}"))?;
 
         if is_save {
             self.token.set_code(&code);
@@ -220,171 +234,6 @@ impl GetPocket {
 
         Ok(self)
     }
-
-    // ADD
-    pub async fn add_item_with_params<'a>(
-        &self,
-        url: &'a str,
-        title: Option<&'a str>,
-        tags: Option<&[&'a str]>,
-        tweet_id: Option<&'a str>,
-    ) -> Result<RecordAdded> {
-        let endpoint = "https://getpocket.com/v3/add";
-
-        #[derive(Serialize)]
-        struct RequestParams<'a> {
-            consumer_key: &'a str,
-            access_token: &'a str,
-            url: &'a str,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            title: Option<&'a str>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            tags: Option<&'a [&'a str]>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            tweet_id: Option<&'a str>,
-        }
-
-        let params = match &self.token.access_token {
-            Some(access_token) => RequestParams {
-                consumer_key: &self.consumer_key,
-                access_token,
-                url,
-                title,
-                tags,
-                tweet_id,
-            },
-            None => bail!(ClientError::TokenError),
-        };
-
-        let client = &self.reqwester.client;
-        let res = client.post(endpoint).json(&params).send().await?;
-
-        if let Err(err) = ApiRequestError::handler_status(res.status()) {
-            bail!(err);
-        }
-
-        let res_body = &res.text().await?;
-
-        let res_ser: RecordAdded = serde_json::from_str(&res_body).map_err(|e| format_err!(e))?;
-
-        Ok(res_ser)
-    }
-
-    /// adding a single item
-    pub async fn add_item<'a>(&self, url: &'a str) -> Result<RecordAdded> {
-        self.add_item_with_params(url, None, None, None).await
-    }
-
-    // EDIT
-    /// https://getpocket.com/developer/docs/v3/modify
-    pub async fn bulk_modify_raw_params<'a>(&self, params: &'a str) -> Result<RecordModified> {
-        let endpoint = "https://getpocket.com/v3/send";
-
-        #[derive(Serialize)]
-        struct RequestParams<'a> {
-            consumer_key: &'a str,
-            access_token: &'a str,
-        }
-
-        let access_token = match &self.token.access_token {
-            Some(access_token) => access_token,
-            None => bail!(ClientError::TokenError),
-        };
-
-        let consumer_key = &self.consumer_key;
-
-        let params =
-            format!("{endpoint}?{params}&access_token={access_token}&consumer_key={consumer_key}");
-
-        let client = &self.reqwester.client;
-        let res = client.post(&params).send().await?;
-
-        if let Err(err) = ApiRequestError::handler_status(res.status()) {
-            bail!(err);
-        }
-
-        let res_body = &res.text().await?;
-
-        let res_ser: RecordModified =
-            serde_json::from_str(&res_body).map_err(|e| format_err!(ClientError::JsonError(e)))?;
-
-        Ok(res_ser)
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_add(&self, _params: &[BulkRecAdd]) -> Result<BulkRecAdded> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_archive(&self, _params: &[BulkRecArchive]) -> Result<BulkRecArchived> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_readd(&self, _params: &[BulkRecReadd]) -> Result<BulkRecReadded> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_favorite(&self, _params: &[BulkRecFavorite]) -> Result<BulkRecFavorited> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_unfavorite(
-        &self,
-        _params: &[BulkRecUnfovorite],
-    ) -> Result<BulkRecUnfovorited> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_delete(&self, _params: &[BulkRecDelete]) -> Result<BulkRecDeleted> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_tags_add(&self, _params: &[BulkTagsAdd]) -> Result<BulkTagsAdded> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_tags_remove(&self, _params: &[BulkTagsRemove]) -> Result<BulkTagsRemoved> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_tags_replace(&self, _params: &[BulkTagsReplace]) -> Result<BulkTagsReplaced> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_tags_clear(&self, _params: &[BulkTagsClear]) -> Result<BulkTagsCleared> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_tag_rename(&self, _params: &[BulkTagsRename]) -> Result<BulkTagsRenamed> {
-        unimplemented!()
-    }
-
-    // NOTE: function signature and code can be changed.
-    #[cfg(feature = "unstable")]
-    pub async fn bulk_tag_delete(&self, _params: &[BulkTagsDelete]) -> Result<BulkTagsDeleted> {
-        unimplemented!()
-    }
 }
 
 #[derive(Default)]
@@ -438,109 +287,3 @@ pub enum RecordItemDetailType {
     Complete,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct RecordItem {
-    pub status: i32,
-    #[serde(default)]
-    pub complete: Option<i32>,
-    pub error: Option<String>,
-    pub since: i32,
-    pub list: Map<String, serde_json::Value>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct RecordAdded {
-    pub item: Map<String, serde_json::Value>,
-    pub status: i32,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct RecordModified {
-    pub action_results: Vec<bool>,
-    pub status: i32,
-}
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecAdd {
-    /// The id of the item to perform the action on.
-    item_id: i32,
-    /// A Twitter status id; this is used to show tweet attribution.
-    ref_id: i32,
-    /// A comma-delimited list of one or more tags.
-    tags: Option<String>,
-    /// The time the action occurred. Unix epoch in milliseconds
-    time: Option<i32>,
-    /// The title of the item.
-    title: Option<String>,
-    /// The url of the item; provide this only if you do not have an item_id.
-    url: Option<String>,
-}
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecArchive;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecReadd;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecFavorite;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecUnfovorite;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecDelete;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsAdd;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsRemove;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsReplace;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsClear;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsRename;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsDelete;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecAdded;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecArchived;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecReadded;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecFavorited;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecUnfovorited;
-
-#[cfg(feature = "unstable")]
-pub struct BulkRecDeleted;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsAdded;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsRemoved;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsReplaced;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsCleared;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsRenamed;
-
-#[cfg(feature = "unstable")]
-pub struct BulkTagsDeleted;

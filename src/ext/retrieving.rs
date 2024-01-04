@@ -3,14 +3,27 @@ use crate::{
     ApiRequestError,
 };
 use anyhow::{bail, format_err, Result};
+use std::collections::BTreeMap as Map;
 use async_trait::async_trait;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use thiserror::Error;
+
+static ENDPOINT: &'static str = "https://getpocket.com/v3/get";
 
 #[derive(Error, Debug)]
 pub enum RetrievingError<'a> {
     #[error("Invalid Params: `{0}`")]
     InvalidParams(&'a str),
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RecordItem {
+    pub status: i32,
+    #[serde(default)]
+    pub complete: Option<i32>,
+    pub error: Option<String>,
+    pub since: i32,
+    pub list: Map<String, serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -79,8 +92,6 @@ impl RetrievingExt for GetPocket {
         offset: i32,
         count: i32,
     ) -> Result<RecordItem> {
-        let endpoint = "https://getpocket.com/v3/get";
-
         let params = match &self.token.access_token {
             Some(access_token) => RequestParams {
                 consumer_key: &self.consumer_key,
@@ -137,7 +148,7 @@ impl RetrievingExt for GetPocket {
         };
 
         let client = &self.reqwester.client;
-        let res = client.post(endpoint).json(&params).send().await?;
+        let res = client.post(ENDPOINT).json(&params).send().await?;
 
         if let Err(err) = ApiRequestError::handler_status(res.status()) {
             bail!(err);
