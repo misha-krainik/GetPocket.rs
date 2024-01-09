@@ -3,17 +3,19 @@
 Official GetPocket API docs
 https://getpocket.com/developer/docs/overview
 
-[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml)
+[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml) [![Publish](https://github.com/misha-krainik/GetPocket.rs/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/misha-krainik/GetPocket.rs/actions/workflows/release.yml)
 
 License: AGPL-3.0-only
 
-Crates.io
+### Crates.io
+
 https://crates.io/crates/getpocket
 
-Documentation
+### Documentation
+
 https://docs.rs/getpocket/latest/getpocket/
 
-### Tutorial
+### How to use
 
 ```shell
 cargo add getpocket
@@ -21,23 +23,35 @@ cargo add getpocket
 
 ```rust
 use getpocket::{adding::AddingExt, GetPocket}; 
+
+let get_pocket = GetPocket::new(consumer_key, redirect_url, access_token).await?;
+get_pocket.add_item("https://getpocket.com/developer/docs/v3/add").await?;
 ```
 
 The GetPocket token can be obtained through the built-in `GetPocket::init` method, or you can use the ready-made method for executing requests.
+
+### Context
+
+- [List of items](#list-of-items)
+- [Add new item](#add-new-item)
+- [Using the direct GetPocket API](#using-the-direct-getpocket-api)
+- [Run examples](#run-examples)
+- [Dependencies](#dependencies)
+- [Features](#features)
 
 ### List of items
 
 ```rust
 fn main() {
-        let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
-        let redirect_url = std::env::var("GET_POCKET_REDIRECT_URL").expect("ENV must be set");
-        let access_token = std::env::var("GET_POCKET_ACCESS_TOKEN").expect("ENV must be set");
+    let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
+    let redirect_url = std::env::var("GET_POCKET_REDIRECT_URL").expect("ENV must be set");
+    let access_token = std::env::var("GET_POCKET_ACCESS_TOKEN").expect("ENV must be set");
 
-        let get_pocket = GetPocket::new(consumer_key, redirect_url, access_token)
-                    .await
-                    .expect("Cannot init GetPocket instance");
+    let get_pocket = GetPocket::new(consumer_key, redirect_url, access_token)
+        .await
+        .expect("Cannot init GetPocket instance");
 
-        dbg!(&get_pocket.list_of_items().await.unwrap());
+    let _ = get_pocket.list_of_items().await.unwrap();
 }
 ```
 
@@ -85,15 +99,15 @@ RecordItem {
 
 ```rust
 fn main() {
-        let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
-        let redirect_url = std::env::var("GET_POCKET_REDIRECT_URL").expect("ENV must be set");
-        let access_token = std::env::var("GET_POCKET_ACCESS_TOKEN").expect("ENV must be set");
+    let consumer_key = std::env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
+    let redirect_url = std::env::var("GET_POCKET_REDIRECT_URL").expect("ENV must be set");
+    let access_token = std::env::var("GET_POCKET_ACCESS_TOKEN").expect("ENV must be set");
 
-        let get_pocket = GetPocket::new(consumer_key, redirect_url, access_token)
-                    .await
-                    .expect("Cannot init GetPocket instance");
+    let get_pocket = GetPocket::new(consumer_key, redirect_url, access_token)
+        .await
+        .expect("Cannot init GetPocket instance");
 
-        dbg!(&get_pocket.add_item("https://getpocket.com/developer/docs/v3/add").await.unwrap());
+    let _ = get_pocket.add_item("https://getpocket.com/developer/docs/v3/add").await.unwrap();
 }
 ```
 
@@ -175,7 +189,7 @@ use std::{thread, time};
 async fn main() {
     let get_pocket: GetPocket = init_get_pocket().await;
 
-    dbg!(&get_pocket.list_of_items_with_params(
+    let _ = get_pocket.list_of_items_with_params(
         RecordItemState::All,
         RecordItemFavorite::All,
         RecordItemTag::All,
@@ -187,7 +201,7 @@ async fn main() {
         None,
         0,
         25,
-    ).await.unwrap());
+    ).await.unwrap();
 }
 
 async fn init_get_pocket() -> GetPocket {
@@ -233,30 +247,39 @@ async fn init_get_pocket() -> GetPocket {
 }
 ```
 
-### Archive item
+### Using the direct GetPocket API
+
+Currently, the crate is in an early stage and is actively under development. If you haven't found the method you need, we recommend utilizing the `send_params_direct` function to send a request to the GetPocket API. This function includes automatic error handling and transfers all necessary tokens for the request. Rest assured, this method will persist in future versions of the crate. You need not worry that new releases will replace or alter it."
 
 ```rust
+use serde::{Serialize, Deserialize};
+use serde_urlencoded;
 
-#[tokio::main]
-async fn main() {
-    let get_pocket = init_get_pocket().await;
-
-    /*
-    [
-        {
-            "action"   : "archive",
-            "item_id"  : "229279689",
-            "time"     : "1348853312"
-        }
-    ]
-    */
-    // actions is JSON array of actions. See below for details.
-    // API docs here https://getpocket.com/v3/send
-    dbg!(&get_pocket
-        .bulk_modify_raw_params("actions=%5B%7B%22action%22%3A%22archive%22%2C%22time%22%3A1348853312%2C%22item_id%22%3A229279689%7D%5D")
-        .await
-        .unwrap());
+#[derive(Debug, Serialize, Deserialize)]
+struct MyStruct {
+    action: String,
+    item_id: String,
+    time: String,
 }
+
+fn main() {
+    let my_struct = MyStruct {
+        action: String::from("favorite"),
+        item_id: String::from("229279689"),
+        time: String::from("1348853312"),
+    };
+
+    let get_pocket = GetPocket::new(consumer_key, redirect_url, access_token)
+        .await
+        .expect("Cannot init GetPocket instance");
+
+    let url_encoded_string = serde_urlencoded::to_string(&[("actions", serde_json::to_string(&vec![my_struct]).unwrap())]).unwrap();
+
+    let _ = get_pocket
+        .send_params_direct(&url_encoded_string)
+        .await;
+}
+
 ```
 
 ### Response: Archive item
@@ -270,7 +293,7 @@ RecordModified {
 }
 ```
 
-### Run other examples
+### Run examples
 
 ```shell
 cargo run --example list
@@ -284,6 +307,12 @@ cargo run --example add
 cargo run --example modify
 ```
 
+### Run tests
+
+```shell
+cargo tests
+```
+
 ### Dependencies
 
 * tokio 
@@ -291,19 +320,22 @@ cargo run --example modify
 * async-trait
 * serde 
 * serde_json
+* serde_urlencoded
 * anyhow
 * thiserror
 
 ### Features
 
 This upcoming feature utilizes a new API and may be UNSTABLE, with the API subject to CHANGE. Please use it at your own risk
-```
+
+```toml
 [dependencies]
 getpocket = { version = "*", features = ["unstable"] }
 ```
 
 [Article View](https://getpocket.com/developer/docs/v3/article-view) API and [Preferences](https://getpocket.com/developer/docs/v3/preferences-api) API (WIP)
-```
+
+```toml
 [dependencies]
 getpocket = { version = "*", features = ["extended"] }
 ```

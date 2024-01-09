@@ -3,7 +3,7 @@ name: Publish
 on:
   push:
     tags:
-      - release-*.*.*
+      - '*'
 
 env:
   CARGO_TERM_COLOR: always
@@ -16,6 +16,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: publish
-      run: |
-          cargo test --verbose
-          cargo publish --token=${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: cargo publish --token=${{ secrets.CARGO_REGISTRY_TOKEN }}

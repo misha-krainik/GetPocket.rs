@@ -9,8 +9,9 @@ mod lib;
 async fn main() {
     let get_pocket: GetPocket = lib::init_get_pocket().await;
 
-    dbg!(&get_pocket
+    let resp_add = get_pocket
         .add_item("https://getpocket.com/developer/docs/v3/add")
-        .await
-        .unwrap());
+        .await;
+    assert!(resp_add.is_ok());
+    println!("add {:#?}", resp_add);
 }

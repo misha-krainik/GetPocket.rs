@@ -1,11 +1,12 @@
 #![allow(dead_code)]
+use crate::ApiRequestError;
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
+use serde_qs as qs;
 use thiserror::Error;
 
-use crate::ApiRequestError;
+pub static ENDPOINT: &'static str = "https://getpocket.com/v3/send";
 
-#[cfg(feature = "unstable")]
 const RATE_LIMIT_HEADERS: [(&str, &str); 6] = [
     ("X-Limit-User-Limit", "Current rate limit enforced per user"),
     (
@@ -24,10 +25,13 @@ const RATE_LIMIT_HEADERS: [(&str, &str); 6] = [
         "X-Limit-Key-Remaining",
         "Number of calls remaining before hitting consumer key's rate limit",
     ),
-    ("X-Limit-Key-Reset: Seconds until consumer key rate limit resets"),
+    (
+        "X-Limit-Key-Reset:",
+        "Seconds until consumer key rate limit resets",
+    ),
 ];
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum ClientError<'a> {
     #[error("{0}")]
     JsonError(serde_json::Error),
@@ -37,6 +41,27 @@ pub enum ClientError<'a> {
     AccessDenied,
     #[error("Token authentication failed. Please check your token and try again.")]
     TokenError,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StandardResponse {
+    pub action_results: Vec<bool>,
+    pub action_errors: Vec<Option<String>>,
+    pub status: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExtendedResponse {
+    pub action_results: serde_json::Value,
+    pub action_errors: Vec<Option<String>>,
+    pub status: i32,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum RecordSendDirect {
+    Standart(StandardResponse),
+    Extended(ExtendedResponse),
 }
 
 #[derive(Deserialize, Default, Clone, Debug)]
@@ -128,6 +153,51 @@ impl GetPocket {
         };
 
         Ok(get_pocket)
+    }
+
+    pub async fn send<T>(&self, params: T) -> Result<RecordSendDirect>
+    where
+        T: Serialize,
+    {
+        #[derive(Serialize)]
+        struct RequestParams<'a, T> {
+            consumer_key: &'a str,
+            access_token: &'a str,
+            actions: T,
+        }
+
+        let access_token = match &self.token.access_token {
+            Some(access_token) => access_token,
+            None => bail!(ClientError::TokenError),
+        };
+
+        let consumer_key = &self.consumer_key;
+
+        let req_param = RequestParams {
+            consumer_key,
+            access_token,
+            actions: params,
+        };
+
+        let urlencoded = qs::to_string(&req_param)?;
+
+        let params = format!("{ENDPOINT}?{urlencoded}");
+
+        let client = &self.reqwester.client;
+        let res = client.post(&params).send().await?;
+
+        if let Err(err) = ApiRequestError::handler_status(res.status()) {
+            bail!(err);
+        }
+
+        let res_body = &res.text().await?;
+
+        let res_ser: Result<RecordSendDirect, serde_json::Error> = serde_json::from_str(&res_body);
+
+        match res_ser {
+            Ok(res_ser) => Ok(res_ser),
+            Err(err) => Err(ClientError::JsonError(err).into()),
+        }
     }
 
     async fn token_code(&mut self) -> Result<String> {

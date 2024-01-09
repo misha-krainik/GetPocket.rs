@@ -1,0 +1,15 @@
+CC BY-ND Inspired License
+
+Copyright (c) 2023 Mykhailo Krainik
+
+This license allows reusers to copy and distribute the material in any medium or format 
+in unadapted form only. Commercial use is permitted, but modifications and derivative works 
+are not allowed. Attribution to the creator is appreciated but not required.
+
+Full version of the Creative Commons Attribution-NoDerivs 4.0 International License can be 
+found here: https://creativecommons.org/licenses/by-nd/4.0/
+
+The above copyright notice and this permission notice shall be included in all copies or 
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
