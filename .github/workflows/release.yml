@@ -15,5 +15,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: test
+      run: echo "${{ secrets.GET_POCKET_ACCESS_TOKEN }}" > /tmp/get_pocket_access_token && cargo test 
     - name: publish
       run: cargo publish --token=${{ secrets.CARGO_REGISTRY_TOKEN }}

@@ -3,7 +3,7 @@
 Official GetPocket API docs
 https://getpocket.com/developer/docs/overview
 
-[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml) [![Publish](https://github.com/misha-krainik/GetPocket.rs/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/misha-krainik/GetPocket.rs/actions/workflows/release.yml)
+[![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml) [![Publish](https://github.com/misha-krainik/GetPocket.rs/actions/workflows/release.yml/badge.svg)](https://github.com/misha-krainik/GetPocket.rs/actions/workflows/release.yml)
 
 ### Crates.io
 
