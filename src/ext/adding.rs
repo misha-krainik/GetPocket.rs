@@ -1,11 +1,8 @@
-use crate::{
-    client::GetPocket,
-    ApiRequestError,
-};
-use std::collections::BTreeMap as Map;
+use crate::{client::GetPocket, ApiRequestError};
 use anyhow::{bail, format_err, Result};
 use async_trait::async_trait;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap as Map;
 use thiserror::Error;
 
 static ENDPOINT: &'static str = "https://getpocket.com/v3/add";

@@ -3,9 +3,9 @@ use crate::{
     ApiRequestError,
 };
 use anyhow::{bail, format_err, Result};
-use std::collections::BTreeMap as Map;
 use async_trait::async_trait;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap as Map;
 use thiserror::Error;
 
 static ENDPOINT: &'static str = "https://getpocket.com/v3/get";

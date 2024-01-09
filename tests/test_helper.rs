@@ -8,7 +8,7 @@ lazy_static! {
     static ref GETPOCKET_INSTANCE: Mutex<Option<GetPocket>> = Mutex::new(None);
 }
 
-use std::{path, fs, env};
+use std::{env, fs, path};
 
 pub async fn init_get_pocket() -> GetPocket {
     let consumer_key = env::var("GET_POCKET_CONSUMER_KEY").expect("ENV must be set");
@@ -22,24 +22,22 @@ pub async fn init_get_pocket() -> GetPocket {
                 .await
                 .unwrap()
         }
-        false => {
-            GetPocket::init(
-                consumer_key,
-                redirect_url,
-                |access_token| {
-                    fs::write(cfg_path, access_token).unwrap();
-                },
-                |auth_url| {
-                    let ret = webbrowser::open(auth_url).is_ok();
+        false => GetPocket::init(
+            consumer_key,
+            redirect_url,
+            |access_token| {
+                fs::write(cfg_path, access_token).unwrap();
+            },
+            |auth_url| {
+                let ret = webbrowser::open(auth_url).is_ok();
 
-                    let wait_time = time::Duration::from_millis(6000);
-                    thread::sleep(wait_time);
+                let wait_time = time::Duration::from_millis(6000);
+                thread::sleep(wait_time);
 
-                    Ok(ret)
-                },
-            )
-            .await
-            .unwrap()
-        }
+                Ok(ret)
+            },
+        )
+        .await
+        .unwrap(),
     }
 }

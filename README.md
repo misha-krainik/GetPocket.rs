@@ -280,13 +280,30 @@ cargo run --example list
 cargo run --example add
 ```
 
+```shell
+cargo run --example modify
+```
+
 ### Dependencies
 
 * tokio 
 * reqwest
-* async-trait0
+* async-trait
 * serde 
 * serde_json
 * anyhow
 * thiserror
 
+### Features
+
+This upcoming feature utilizes a new API and may be UNSTABLE, with the API subject to CHANGE. Please use it at your own risk
+```
+[dependencies]
+getpocket = { version = "*", features = ["unstable"] }
+```
+
+[Article View](https://getpocket.com/developer/docs/v3/article-view) API and [Preferences](https://getpocket.com/developer/docs/v3/preferences-api) API (WIP)
+```
+[dependencies]
+getpocket = { version = "*", features = ["extended"] }
+```

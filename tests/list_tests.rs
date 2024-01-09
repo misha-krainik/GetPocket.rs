@@ -1,8 +1,8 @@
 mod test_helper;
 
 use getpocket::{
-    retrieving::RetrievingExt, adding::AddingExt, GetPocket, RecordItemContentType, RecordItemDetailType,
-    RecordItemFavorite, RecordItemSort, RecordItemState, RecordItemTag,
+    adding::AddingExt, retrieving::RetrievingExt, GetPocket, RecordItemContentType,
+    RecordItemDetailType, RecordItemFavorite, RecordItemSort, RecordItemState, RecordItemTag,
 };
 use tokio::test;
 
@@ -148,12 +148,14 @@ async fn test_retrieve_untagged_items() {
 async fn test_retrieve_tagged_items() {
     let get_pocket: GetPocket = test_helper::init_get_pocket().await;
 
-    let _ = get_pocket.add_item_with_params(
-        "https://www.rust-lang.org/",
-        Some("Rust Programming Language"),
-        Some(&["rust", "programming", "language"]),
-        None,
-    ).await;
+    let _ = get_pocket
+        .add_item_with_params(
+            "https://www.rust-lang.org/",
+            Some("Rust Programming Language"),
+            Some(&["rust", "programming", "language"]),
+            None,
+        )
+        .await;
 
     // Test case: Retrieve tagged items
     let resp = get_pocket
@@ -172,8 +174,7 @@ async fn test_retrieve_tagged_items() {
         )
         .await;
 
-
-    dbg!(&resp);    
+    dbg!(&resp);
 
     assert!(resp.is_ok());
 }
@@ -251,12 +252,14 @@ async fn test_retrieve_article_content_type_items() {
 async fn test_retrieve_image_content_type_items() {
     let get_pocket: GetPocket = test_helper::init_get_pocket().await;
 
-    let _ = get_pocket.add_item_with_params(
-        "https://www.mozilla.org/media/img/pocket/pocket-logo-light-mode.9a20614bbcba.svg",
-        None, 
-        None,
-        None,
-    ).await;
+    let _ = get_pocket
+        .add_item_with_params(
+            "https://www.mozilla.org/media/img/pocket/pocket-logo-light-mode.9a20614bbcba.svg",
+            None,
+            None,
+            None,
+        )
+        .await;
 
     // Test case: Retrieve image content type items
     let r = get_pocket

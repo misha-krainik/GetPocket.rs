@@ -1,6 +1,6 @@
 extern crate getpocket;
 
-use getpocket::{adding::AddingExt, GetPocket}; 
+use getpocket::{adding::AddingExt, GetPocket};
 
 #[path = "../tests/test_helper.rs"]
 mod lib;

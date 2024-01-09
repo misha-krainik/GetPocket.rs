@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::{bail, format_err, Result};
 use async_trait::async_trait;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 static ENDPOINT: &'static str = "https://getpocket.com/v3/send";
@@ -137,10 +137,7 @@ pub trait ModifyingExt {
 
     // NOTE: function signature and code can be changed.
     #[cfg(feature = "unstable")]
-    async fn bulk_unfavorite(
-        &self,
-        _params: &[BulkRecUnfovorite],
-    ) -> Result<BulkRecUnfovorited> {
+    async fn bulk_unfavorite(&self, _params: &[BulkRecUnfovorite]) -> Result<BulkRecUnfovorited> {
         unimplemented!()
     }
 

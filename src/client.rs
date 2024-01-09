@@ -8,11 +8,23 @@ use crate::ApiRequestError;
 #[cfg(feature = "unstable")]
 const RATE_LIMIT_HEADERS: [(&str, &str); 6] = [
     ("X-Limit-User-Limit", "Current rate limit enforced per user"),
-    ("X-Limit-User-Remaining", "Number of calls remaining before hitting user's rate limit"),
-    ("X-Limit-User-Reset", "Seconds until user's rate limit resets"),
-    ("X-Limit-Key-Limit", "Current rate limit enforced per consumer key"),
-    ("X-Limit-Key-Remaining", "Number of calls remaining before hitting consumer key's rate limit"),
-    ("X-Limit-Key-Reset: Seconds until consumer key rate limit resets")
+    (
+        "X-Limit-User-Remaining",
+        "Number of calls remaining before hitting user's rate limit",
+    ),
+    (
+        "X-Limit-User-Reset",
+        "Seconds until user's rate limit resets",
+    ),
+    (
+        "X-Limit-Key-Limit",
+        "Current rate limit enforced per consumer key",
+    ),
+    (
+        "X-Limit-Key-Remaining",
+        "Number of calls remaining before hitting consumer key's rate limit",
+    ),
+    ("X-Limit-Key-Reset: Seconds until consumer key rate limit resets"),
 ];
 
 #[derive(Error, Debug)]
@@ -84,7 +96,9 @@ impl GetPocket {
             token,
         };
 
-        get_pocket.get_access_token_manual_open(opener_fn, None).await?;
+        get_pocket
+            .get_access_token_manual_open(opener_fn, None)
+            .await?;
 
         if let Some(ref access_token) = get_pocket.token.access_token {
             store_fn(access_token);
@@ -152,7 +166,11 @@ impl GetPocket {
             .map_err(Into::into)
     }
 
-    async fn get_access_token_manual_open<F>(&mut self, f: F, redirect_uri: Option<&str>) -> Result<&mut Self>
+    async fn get_access_token_manual_open<F>(
+        &mut self,
+        f: F,
+        redirect_uri: Option<&str>,
+    ) -> Result<&mut Self>
     where
         F: for<'b> FnOnce(&'b str) -> Result<bool>,
     {
@@ -160,10 +178,12 @@ impl GetPocket {
 
         let redirect_uri = match redirect_uri {
             Some(redirect_uri) => redirect_uri,
-            None => "https://getpocket.com"
+            None => "https://getpocket.com",
         };
 
-        let is_save = f(&format!("https://getpocket.com/auth/authorize?request_token={code}&redirect_uri={redirect_uri}"))?;
+        let is_save = f(&format!(
+            "https://getpocket.com/auth/authorize?request_token={code}&redirect_uri={redirect_uri}"
+        ))?;
 
         if is_save {
             self.token.set_code(&code);
@@ -286,4 +306,3 @@ pub enum RecordItemDetailType {
     Simple,
     Complete,
 }
-

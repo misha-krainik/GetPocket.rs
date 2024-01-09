@@ -1,8 +1,9 @@
 [package]
 name = "getpocket"
-version = "0.2.5-rc1"
+version = "0.2.5-rc2"
 edition = "2021"
 description = "Rust API for https://getpocket.com/"
+repository = "https://github.com/misha-krainik/GetPocket.rs"
 license = "AGPL-3.0-only"
 exclude = [
     ".gitignore",
@@ -11,6 +12,7 @@ exclude = [
 [features]
 default = []
 unstable = []
+extended = []
 
 [dependencies]
 anyhow = "1"
@@ -34,6 +36,5 @@ name = "modify"
 path = "examples/modify.rs"
 
 [dev-dependencies]
-rocksdb = "0.19"
 webbrowser = "0.8.3"
 lazy_static = "1.4.0"
