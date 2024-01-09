@@ -5,8 +5,6 @@ https://getpocket.com/developer/docs/overview
 
 [![Build](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml/badge.svg)](https://github.com/mikhail-krainik/getpocket/actions/workflows/rust.yml) [![Publish](https://github.com/misha-krainik/GetPocket.rs/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/misha-krainik/GetPocket.rs/actions/workflows/release.yml)
 
-License: AGPL-3.0-only
-
 ### Crates.io
 
 https://crates.io/crates/getpocket
@@ -34,6 +32,7 @@ The GetPocket token can be obtained through the built-in `GetPocket::init` metho
 
 - [List of items](#list-of-items)
 - [Add new item](#add-new-item)
+- [Modify items](https://github.com/misha-krainik/GetPocket.rs/blob/master/examples/modify.rs)
 - [Using the direct GetPocket API](#using-the-direct-getpocket-api)
 - [Run examples](#run-examples)
 - [Dependencies](#dependencies)
@@ -249,7 +248,7 @@ async fn init_get_pocket() -> GetPocket {
 
 ### Using the direct GetPocket API
 
-Currently, the crate is in an early stage and is actively under development. If you haven't found the method you need, we recommend utilizing the `send_params_direct` function to send a request to the GetPocket API. This function includes automatic error handling and transfers all necessary tokens for the request. Rest assured, this method will persist in future versions of the crate. You need not worry that new releases will replace or alter it."
+Currently, the crate is in an early stage and is actively under development. If you haven't found the method you need, we recommend utilizing the `send` function to send a request to the GetPocket API. This function includes automatic error handling and transfers all necessary tokens for the request. Rest assured, this method will persist in future versions of the crate. You need not worry that new releases will replace or alter it."
 
 ```rust
 use serde::{Serialize, Deserialize};
@@ -273,10 +272,8 @@ fn main() {
         .await
         .expect("Cannot init GetPocket instance");
 
-    let url_encoded_string = serde_urlencoded::to_string(&[("actions", serde_json::to_string(&vec![my_struct]).unwrap())]).unwrap();
-
     let _ = get_pocket
-        .send_params_direct(&url_encoded_string)
+        .send(&[url_encoded_string])
         .await;
 }
 
@@ -310,7 +307,7 @@ cargo run --example modify
 ### Run tests
 
 ```shell
-cargo tests
+cargo test
 ```
 
 ### Dependencies
@@ -320,18 +317,11 @@ cargo tests
 * async-trait
 * serde 
 * serde_json
-* serde_urlencoded
+* serde_qs 
 * anyhow
 * thiserror
 
 ### Features
-
-This upcoming feature utilizes a new API and may be UNSTABLE, with the API subject to CHANGE. Please use it at your own risk
-
-```toml
-[dependencies]
-getpocket = { version = "*", features = ["unstable"] }
-```
 
 [Article View](https://getpocket.com/developer/docs/v3/article-view) API and [Preferences](https://getpocket.com/developer/docs/v3/preferences-api) API (WIP)
 
